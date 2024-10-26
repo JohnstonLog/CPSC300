@@ -7,7 +7,7 @@ class Patient:
     self.arrival_time = arrival_time                     # Read from file
     self.patient_type = patient_type                     # Read From file (E or W)
     self.treatment_time = treatment_time                 # Read from file
-    self.priority = 1 if patient_type == 'E' else random.randint(1,5) # Priority 1 if type E else random 1-5
+    self.priority = 1 if patient_type == 'E' else None # Priority 1 if type E else random 1-5
     self.wait_time = wait_time                           # calculated later
     self.treatment_start_time = treatment_start_time     # determined later
 
