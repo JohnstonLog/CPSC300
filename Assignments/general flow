@@ -1,0 +1,15 @@
+    # Read in file, create patient array
+
+    #start pulling from patients array based on arrival time, each new patient creates a arrival event
+    # arrival event if patient type E set priority to 1 and send to emerg queue, create EWR event
+    #               
+    #               else set random priority 1-5, create assessment event, +4 wait time, then 
+    #                   create EWR event, and send to emerg queue
+    #
+    # emerg priority queue <p5,p4,p3,p2,p1>
+    # From emerg w queue by priority create start treatment event, +treattime create treatment 
+    # complete event, clear room to let new patient in, if priority >1 create departure event, else
+    # create admission event, only one admission nurse.  
+    # start treatment event - check if any of the three rooms are available, if yes fill room
+    # end treatment event - empty room, create a departure event 1 time unit for 2-5 priority, 3 for 
+    #priority 1 patient and create admission event. put in admission queue. 
