@@ -2,53 +2,18 @@ import random
 from queue import PriorityQueue
 #patient constructor
 class Patient:
-  def __init__(self, patient_id, arrival_time, patient_type, treatment_time, wait_time, treatment_start_time):
+  def __init__(self, patient_id, arrival_time, patient_type, treatment_time):
     self.patient_id = patient_id                         # patient ID from global variable
     self.arrival_time = arrival_time                     # Read from file
     self.patient_type = patient_type                     # Read From file (E or W)
     self.treatment_time = treatment_time                 # Read from file
-    self.priority = 1 if patient_type == 'E' else None # Priority 1 if type E else random 1-5
-    self.wait_time = wait_time                           # calculated later
-    self.treatment_start_time = treatment_start_time     # determined later
+    self.priority = None                                 # Priority 1 if type E else random 1-5
+    self.wait_time = None                                   # starts at 0
 
 
-  
-  # getters and setters for patient class
-  def set_patient_id(self, value):
-    self.patient_id = value
-
-  def get_patient_id(self):
-    return self.patient_id
-
-  def set_arrival_time(self, time):
-    self.arrival_time = time
-
-  def get_arrival_time(self):
-    return self.arrival_time
-  
-  def set_patient_type(self, type):
-    self.patient_type = type
-
-  def get_patient_type(self):
-    return self.patient_type
-  
-  def set_treatment_time(self, time):
-    self.treatment_time = time
-
-  def get_treatment_time(self):
-    return self.treatment_time
-  
-  def set_wait_time(self, time):
-    self.wait_time = time
-
-  def get_wait_time(self):
-    return self.wait_time
-  
-  def set_treatment_start_time(self, time):
-    self.treatment_start_time = time
-
-  def get_treatment_start_time(self):
-    return self.treatment_start_time
+  def set_patient_priority(self):
+    if self.patient_type == 'W' and self.priority is None:
+      self.priority = random.randint(1, 5)
   
 
   
