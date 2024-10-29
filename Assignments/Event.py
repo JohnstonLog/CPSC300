@@ -6,7 +6,10 @@ class Event:
     
     # used to set the priority of attributes (ordered by time, then patient priority, then patient id)
     def __lt__(self, other):
-        return(self.time, self.patient.priority, self.patient.patient_id) < (other.time, other.patient.priority, other.patient.patient_id)
+        # Assign a high priority if self.patient.priority or other.patient.priority is None
+        self_priority = self.patient.priority if self.patient.priority is not None else 6
+        other_priority = other.patient.priority if other.patient.priority is not None else 6
+        return (self.time, self_priority, self.patient.patient_id) < (other.time, other_priority, other.patient.patient_id)
 
 # the following are sub classes that inherit the above class attributes (order)
 # used to distinguish between different even types

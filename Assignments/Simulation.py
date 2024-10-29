@@ -15,10 +15,10 @@ class HospitalSimulation:
         with open(file_path, 'r') as file:
             id_num = 28064212
             for line in file:
-                time, type_, treatment_time = line.split()
+                arrival_time, patient_type, treatment_time = line.split()
                 patient_id = id_num
                 id_num += 1
-                patient = Patient(patient_id, int(time), type_, int(treatment_time))
+                patient = Patient(patient_id, int(arrival_time), patient_type, int(treatment_time))
                 self.patients.append(patient)
                 arrival_event = Event.ArrivalEvent(patient.arrival_time, patient)
                 self.schedule_event(arrival_event)
@@ -34,7 +34,7 @@ class HospitalSimulation:
 
     def process_arrival_event(self, event):
         patient = event.patient
-        print(f"Time {event.time}: {patient.patient_id} arrives")
+        print(f"Time {event.time}: {patient.patient_id} ({patient.patient_type}) arrives")
 
         #walk in patients create assesment event 4 time units after the arrival
         if patient.patient_type == 'W':
@@ -44,6 +44,7 @@ class HospitalSimulation:
         
         #emergency patients immediatly create an enter waiting room event
         else:
+            patient.set_patient_priority()
             ewr_event = Event.EnterWaitingRoomEvent(event.time, patient)
             self.schedule_event(ewr_event)
 
@@ -65,10 +66,13 @@ class HospitalSimulation:
 
         if self.treatment_rooms > 0:
             
+            #calculate wait time
+            patient.wait_time = event.time - patient.arrival_time 
+
             treatment_event = Event.StartTreatmentEvent(event.time, patient)
             self.schedule_event(treatment_event)
             self.treatment_rooms -= 1
-            print(f"Time {event.time}: {patient.patient_id} (priority {patient.priority}) starts treatment (wait time #, {self.treatment_rooms} room(s) remain)")
+            print(f"Time {event.time}: {patient.patient_id} (priority {patient.priority}) starts treatment (waited {patient.wait_time}, {self.treatment_rooms} room(s) remain)")
         else:
             patient.wait_time += 1
             #...
