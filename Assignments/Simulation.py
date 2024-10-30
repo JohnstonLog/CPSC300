@@ -102,7 +102,7 @@ class HospitalSimulation:
             
         else:
             start_treatment_event = Event.StartTreatmentEvent(event.time, patient)
-            self.ewr_queue.put(start_treatment_event)
+            self.ewr_queue.put((patient.priority, start_treatment_event))
 
 
     def process_start_treatment_event(self, event):
@@ -131,7 +131,7 @@ class HospitalSimulation:
 
         #if someone is waiting in the waiting room (ewr_queue)
         if not self.ewr_queue.empty() and self.treatment_rooms > 0:
-            next_event = self.ewr_queue.get()
+            next_event = self.ewr_queue.get()[1]
             next_patient = next_event.patient
             next_patient.ewr_wait_time = event.time - next_event.time
             next_start_treatement_event = Event.StartTreatmentEvent(event.time, next_patient)
@@ -140,7 +140,7 @@ class HospitalSimulation:
 
     def process_admission_complete_event(self, event):
         patient = event.patient
-        print(f"Time {event.time}: {patient.patient_id} ({patient.priority}, waited {patient.admission_wait_time}) admitted to Hospital")
+        print(f"Time {event.time}: {patient.patient_id} (priority {patient.priority}, waited {patient.admission_wait_time}) admitted to Hospital")
         departure_event = Event.DepartureEvent(event.time, patient)
         self.schedule_event(departure_event)
 
@@ -158,6 +158,13 @@ class HospitalSimulation:
         self.treatment_rooms += 1
         print(f"Time {event.time}: {patient.patient_id} departs, {self.treatment_rooms} rm(s) available")
 
+        #check again if someone is waiting in the emergency waiting room
+        if not self.ewr_queue.empty() and self.treatment_rooms > 0:
+            next_event = self.ewr_queue.get()[1]
+            next_patient = next_event.patient
+            next_patient.ewr_wait_time = event.time - next_event.time
+            next_start_treatement_event = Event.StartTreatmentEvent(event.time, next_patient)
+            self.schedule_event(next_start_treatement_event)
 
     # schedule event method
     def schedule_event(self, event):
