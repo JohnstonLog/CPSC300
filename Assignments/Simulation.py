@@ -12,6 +12,10 @@ class HospitalSimulation:
         self.treatment_rooms = 3
         self.assessment_queue = Queue()
         self.assessment_room_available = True
+        self.ewr_queue = PriorityQueue()
+        self.admission_queue = Queue()
+        self.admission_nurse_available = True
+
 
     def load_patients(self, file_path):
         with open(file_path, 'r') as file:
@@ -31,6 +35,9 @@ class HospitalSimulation:
         print("Simulation begins...")
         while not self.eventQueue.empty():
             self.process_next_event()
+        print("... All events complete. Final Summary:")
+
+        #SUMMARY STATS GO HERE
 
     #event processing methods
 
@@ -68,9 +75,11 @@ class HospitalSimulation:
         self.assessment_room_available = True # make assessment room available again
 
         #create a new EWR event
-        print(f"Time {event.time}: {patient.patient_id} (Priority {patient.priority}) enters waiting room")
+        
         ewr_event = Event.EnterWaitingRoomEvent(event.time, patient)
         self.schedule_event(ewr_event)
+
+
 
         # if there is someone waiting to be assessed we take them from the queue and create an assessment event for them
         if not self.assessment_queue.empty():
@@ -87,43 +96,67 @@ class HospitalSimulation:
         patient = event.patient
 
         if self.treatment_rooms > 0:
-
-            treatment_event = Event.StartTreatmentEvent(event.time, patient)
-            self.schedule_event(treatment_event)
-            self.treatment_rooms -= 1
-            print(f"Time {event.time}: {patient.patient_id} (priority {patient.priority}) starts treatment (waited {patient.ewr_wait_time}, {self.treatment_rooms} room(s) remain)")
+            print(f"Time {event.time}: {patient.patient_id} (Priority {patient.priority}) enters waiting room")
+            start_treatment_event = Event.StartTreatmentEvent(event.time, patient)
+            self.schedule_event(start_treatment_event)
+            
         else:
-            patient.ewr_wait_time += 1
-            #...
+            start_treatment_event = Event.StartTreatmentEvent(event.time, patient)
+            self.ewr_queue.put(start_treatment_event)
 
 
     def process_start_treatment_event(self, event):
         patient = event.patient
-
+        self.treatment_rooms -= 1
+        print(f"Time {event.time}: {patient.patient_id} (Priority {patient.priority}) starts treatment (waited {patient.ewr_wait_time}, {self.treatment_rooms} rm(s) remain)")
         treatment_complete_event = Event.TreatmentCompleteEvent(event.time + patient.treatment_time, patient)
         self.schedule_event(treatment_complete_event)
 
 
     def process_treatment_complete_event(self, event):
         patient = event.patient
-        self.treatment_rooms += 1
+        print(f"Time {event.time}: {patient.patient_id} finished treatment")
 
         if patient.priority == 1:
-            admission_event = Event.AddmissionCompleteEvent(event.time +3, patient)
-            self.schedule_event(admission_event)
+            if self.admission_nurse_available == True:
+                admission_event = Event.AddmissionCompleteEvent(event.time + 3, patient)
+                self.schedule_event(admission_event)
+            else:
+                admission_event = Event.AddmissionCompleteEvent(event.time, patient)
+                self.admission_queue.put(admission_event)
+
         else:
-            departure_event = Event.DepartureEvent(event.time, patient)
+            departure_event = Event.DepartureEvent(event.time + 1, patient)
             self.schedule_event(departure_event)
+
+        #if someone is waiting in the waiting room (ewr_queue)
+        if not self.ewr_queue.empty() and self.treatment_rooms > 0:
+            next_event = self.ewr_queue.get()
+            next_patient = next_event.patient
+            next_patient.ewr_wait_time = event.time - next_event.time
+            next_start_treatement_event = Event.StartTreatmentEvent(event.time, next_patient)
+            self.schedule_event(next_start_treatement_event)
 
 
     def process_admission_complete_event(self, event):
         patient = event.patient
-        print(f"Time {event.time}: {patient.patient_id} admission complete")
+        print(f"Time {event.time}: {patient.patient_id} ({patient.priority}, waited {patient.admission_wait_time}) admitted to Hospital")
+        departure_event = Event.DepartureEvent(event.time, patient)
+        self.schedule_event(departure_event)
+
+        #if no someone is waiting in the admission queue then create event and calculate waiting time
+        if not self.admission_queue.empty():
+            next_event = self.admission_queue.get()
+            next_patient = next_event.patient
+            next.patient.admission_wait_time = event.time - next_event.time
+            next_admission_event = Event.AddmissionCompleteEvent(event.time + 3, next_patient)
+            self.schedule_event(next_admission_event)
 
     
     def process_departure_event(self, event):
         patient = event.patient
-        print(f"Time {event.time}: {patient.patient_id} has departed")
+        self.treatment_rooms += 1
+        print(f"Time {event.time}: {patient.patient_id} departs, {self.treatment_rooms} rm(s) available")
 
 
     # schedule event method
@@ -147,5 +180,6 @@ class HospitalSimulation:
             self.process_treatment_complete_event(next_event)
         elif isinstance(next_event, Event.AddmissionCompleteEvent):
             self.process_admission_complete_event(next_event)
-
+        elif isinstance(next_event, Event.DepartureEvent):
+            self.process_departure_event(next_event)
     

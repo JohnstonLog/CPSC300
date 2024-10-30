@@ -10,6 +10,7 @@ class Patient:
     self.priority = None                                 # determined after
     self.assessment_wait_time = 0                                   # starts at 0
     self.ewr_wait_time = 0
+    self.admission_wait_time = 0
 
 
   def set_patient_priority(self):
