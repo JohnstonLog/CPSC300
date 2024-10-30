@@ -8,7 +8,8 @@ class Patient:
     self.patient_type = patient_type                     # Read From file (E or W)
     self.treatment_time = treatment_time                 # Read from file
     self.priority = None                                 # determined after
-    self.wait_time = 0                                   # starts at 0
+    self.assessment_wait_time = 0                                   # starts at 0
+    self.ewr_wait_time = 0
 
 
   def set_patient_priority(self):

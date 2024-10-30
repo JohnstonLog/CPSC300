@@ -1,4 +1,4 @@
-from queue import PriorityQueue
+from queue import PriorityQueue, Queue
 from PatientClass import Patient
 import Event 
 import random
@@ -10,6 +10,8 @@ class HospitalSimulation:
         self.time = 0
         self.patients = []
         self.treatment_rooms = 3
+        self.assessment_queue = Queue()
+        self.assessment_room_available = True
 
     def load_patients(self, file_path):
         with open(file_path, 'r') as file:
@@ -38,9 +40,18 @@ class HospitalSimulation:
 
         #walk in patients create assesment event 4 time units after the arrival
         if patient.patient_type == 'W':
-            print(f"Time {event.time}: {patient.patient_id} starts assessment (implement wait time)")
-            assessment_event = Event.AssessmentEvent(event.time + 4, patient)
-            self.schedule_event(assessment_event)
+            #if there is no one already being assessed then create assessment event and schedule in event queue
+            #and set the assessment room availability to false
+            if self.assessment_room_available == True:
+                print(f"Time {event.time}: {patient.patient_id} starts assessment (waited {patient.assessment_wait_time})")
+                self.assessment_room_available = False
+                assessment_event = Event.AssessmentEvent(event.time + 4, patient)
+                self.schedule_event(assessment_event)
+            else:
+                # the time of this event will be the time that they started waiting
+                assessment_event = Event.AssessmentEvent(event.time, patient)
+                self.assessment_queue.put(assessment_event)
+            
         
         #emergency patients immediatly create an enter waiting room event
         else:
@@ -52,29 +63,37 @@ class HospitalSimulation:
     def process_assessment_event(self, event):
         patient = event.patient
         patient.set_patient_priority() # set patients prio
-
         print(f"Time {event.time}: {patient.patient_id} assessment completed (priority now {patient.priority})")
-        
+
+        self.assessment_room_available = True # make assessment room available again
+
         #create a new EWR event
         print(f"Time {event.time}: {patient.patient_id} (Priority {patient.priority}) enters waiting room")
         ewr_event = Event.EnterWaitingRoomEvent(event.time, patient)
         self.schedule_event(ewr_event)
+
+        # if there is someone waiting to be assessed we take them from the queue and create an assessment event for them
+        if not self.assessment_queue.empty():
+            next_event = self.assessment_queue.get()
+            next_patient = next_event.patient
+            next_patient.assessment_wait_time = event.time - next_event.time
+            print(f"Time {event.time}: {next_patient.patient_id} starts assessment (waited {next_patient.assessment_wait_time})")
+            self.assessment_room_available = False
+            next_assessment_event = Event.AssessmentEvent(next_event.time + 4, next_patient)
+            self.schedule_event(next_assessment_event)
 
 
     def process_ewr_event(self, event):
         patient = event.patient
 
         if self.treatment_rooms > 0:
-            
-            #calculate wait time
-            patient.wait_time = event.time - patient.arrival_time 
 
             treatment_event = Event.StartTreatmentEvent(event.time, patient)
             self.schedule_event(treatment_event)
             self.treatment_rooms -= 1
-            print(f"Time {event.time}: {patient.patient_id} (priority {patient.priority}) starts treatment (waited {patient.wait_time}, {self.treatment_rooms} room(s) remain)")
+            print(f"Time {event.time}: {patient.patient_id} (priority {patient.priority}) starts treatment (waited {patient.ewr_wait_time}, {self.treatment_rooms} room(s) remain)")
         else:
-            patient.wait_time += 1
+            patient.ewr_wait_time += 1
             #...
 
 
