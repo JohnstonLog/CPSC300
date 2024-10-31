@@ -13,7 +13,8 @@ class Patient:
         # Time tracking attributes
         self.assessment_wait_time = 0
         self.assessment_queue_time = None
-        self.assessment_time = None
+        self.assessment_start_time = None
+        self.assessment_end_time = None
         self.ewr_wait_time = 0
         self.ewr_queue_time = None  # Added this attribute
         self.departure_time = None

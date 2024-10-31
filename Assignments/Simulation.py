@@ -52,18 +52,15 @@ class HospitalSimulation:
         patient = event.patient
         print(f"Time {event.time}: {patient.patient_id} ({patient.patient_type}) arrives")
 
-        # Walk-in patients need assessment
         if patient.patient_type == 'W':
             if self.assessment_room_available:
-                # Patient starts assessment immediately
                 patient.assessment_wait_time = 0  # No waiting time
                 print(f"Time {event.time}: {patient.patient_id} starts assessment (waited {patient.assessment_wait_time})")
                 self.assessment_room_available = False  # Assessment room is now occupied
-                # Schedule assessment completion event
+                patient.assessment_start_time = event.time  # Record assessment start time
                 assessment_event = Event.AssessmentEvent(event.time + 4, patient)
                 self.schedule_event(assessment_event)
             else:
-                # Assessment room is busy; add patient to the assessment queue
                 patient.assessment_queue_time = event.time  # Record when the patient started waiting
                 self.assessment_queue.put(patient)
         else:
@@ -72,18 +69,16 @@ class HospitalSimulation:
             ewr_event = Event.EnterWaitingRoomEvent(event.time, patient)
             self.schedule_event(ewr_event)
 
+
     def process_assessment_event(self, event):
         patient = event.patient
         patient.set_patient_priority()  # Set patient's priority after assessment
-        patient.assessment_time = event.time  # Record the assessment completion time
+        patient.assessment_end_time = event.time  # Record the assessment completion time
 
-        # Log the completion of the assessment
         print(f"Time {event.time}: {patient.patient_id} assessment completed (priority now {patient.priority})")
 
-        # Free up the assessment room
         self.assessment_room_available = True
 
-        # Schedule the patient to enter the waiting room
         ewr_event = Event.EnterWaitingRoomEvent(event.time, patient)
         self.schedule_event(ewr_event)
 
@@ -93,9 +88,10 @@ class HospitalSimulation:
             next_patient.assessment_wait_time = event.time - next_patient.assessment_queue_time  # Calculate wait time
             print(f"Time {event.time}: {next_patient.patient_id} starts assessment (waited {next_patient.assessment_wait_time})")
             self.assessment_room_available = False  # Assessment room is now occupied
-            # Schedule assessment completion for the next patient
+            next_patient.assessment_start_time = event.time  # Record assessment start time
             next_assessment_event = Event.AssessmentEvent(event.time + 4, next_patient)
             self.schedule_event(next_assessment_event)
+
 
     def process_ewr_event(self, event):
         patient = event.patient
@@ -199,19 +195,23 @@ class HospitalSimulation:
 
     def print_patient_data(self):
         print(f"{'Patient':<10} {'Priority':<10} {'Arrival':<10} {'Assessment':<15} {'Treatment':<12} {'Departure':<12} {'Waiting':<10}")
-        print('-' * 90)
+        print('-' * 80)
 
         for patient in self.patients:
             patient_id = patient.patient_id
             priority = patient.priority if patient.priority is not None else 'N/A'
             arrival_time = patient.arrival_time
-            assessment_time = patient.assessment_time if patient.assessment_time is not None else 'N/A'
+
+            # For emergency patients, assessment_start_time will be None; use arrival_time instead
+            assessment_time = patient.assessment_start_time if patient.assessment_start_time is not None else patient.arrival_time
+
             treatment_time = patient.treatment_time
             departure_time = patient.departure_time if patient.departure_time is not None else 'N/A'
             waiting_time = patient.ewr_wait_time if patient.ewr_wait_time is not None else 0
 
             # Print the formatted patient information
             print(f"{patient_id:<10} {priority:<10} {arrival_time:<10} {assessment_time:<15} {treatment_time:<12} {departure_time:<12} {waiting_time:<10}")
+
 
 
     def print_summary(self):
