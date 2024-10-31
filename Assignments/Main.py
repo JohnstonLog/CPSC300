@@ -1,9 +1,10 @@
 import Simulation
-import PatientClass
-import Event
 
 sim = Simulation.HospitalSimulation()
 
-file_path = 'Assignments\\data3.txt'
+file_path = 'D:\cpsc300_a1\CPSC300\Assignments\data1.txt'
 
-sim.initialize_simulation(file_path)
+try:
+    sim.initialize_simulation(file_path)
+except Exception as e:
+    print(f"An error occurred during simulation: {e}")
