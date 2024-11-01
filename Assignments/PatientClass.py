@@ -1,5 +1,8 @@
 import random
 from queue import PriorityQueue
+
+random.seed(203)
+
 #patient constructor
 class Patient:
   def __init__(self, patient_id, arrival_time, patient_type, treatment_time):
@@ -8,9 +11,11 @@ class Patient:
     self.patient_type = patient_type                     # Read From file (E or W)
     self.treatment_time = treatment_time                 # Read from file
     self.priority = None                                 # determined after
-    self.assessment_wait_time = 0                                   # starts at 0
+    self.assessment_wait_time = 0
+    self.assessment_time = 0                        
     self.ewr_wait_time = 0
     self.admission_wait_time = 0
+    self.departure_time = 0
 
 
   def set_patient_priority(self):
@@ -18,6 +23,3 @@ class Patient:
       self.priority = random.randint(1, 5)
     elif self.patient_type == 'E' and self.priority is None:
       self.priority = 1
-  
-
-  

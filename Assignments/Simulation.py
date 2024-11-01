@@ -38,6 +38,7 @@ class HospitalSimulation:
         print("... All events complete. Final Summary:")
 
         #SUMMARY STATS GO HERE
+        self.print_patient_summary()
 
     #event processing methods
 
@@ -70,6 +71,7 @@ class HospitalSimulation:
     def process_assessment_event(self, event):
         patient = event.patient
         patient.set_patient_priority() # set patients prio
+        patient.assessment_time = event.time
         print(f"Time {event.time}: {patient.patient_id} assessment completed (priority now {patient.priority})")
 
         self.assessment_room_available = True # make assessment room available again
@@ -106,11 +108,16 @@ class HospitalSimulation:
 
 
     def process_start_treatment_event(self, event):
-        patient = event.patient
-        self.treatment_rooms -= 1
-        print(f"Time {event.time}: {patient.patient_id} (Priority {patient.priority}) starts treatment (waited {patient.ewr_wait_time}, {self.treatment_rooms} rm(s) remain)")
-        treatment_complete_event = Event.TreatmentCompleteEvent(event.time + patient.treatment_time, patient)
-        self.schedule_event(treatment_complete_event)
+        if self.treatment_rooms == 0:
+            patient = event.patient
+            start_treatment_event = Event.StartTreatmentEvent(event.time, patient)
+            self.ewr_queue.put((patient.priority, start_treatment_event))
+        else:
+            patient = event.patient
+            self.treatment_rooms -= 1
+            print(f"Time {event.time}: {patient.patient_id} (Priority {patient.priority}) starts treatment (waited {patient.ewr_wait_time}, {self.treatment_rooms} rm(s) remain)")
+            treatment_complete_event = Event.TreatmentCompleteEvent(event.time + patient.treatment_time, patient)
+            self.schedule_event(treatment_complete_event)
 
 
     def process_treatment_complete_event(self, event):
@@ -155,6 +162,7 @@ class HospitalSimulation:
     
     def process_departure_event(self, event):
         patient = event.patient
+        patient.departure_time = event.time
         self.treatment_rooms += 1
         print(f"Time {event.time}: {patient.patient_id} departs, {self.treatment_rooms} rm(s) available")
 
@@ -189,4 +197,18 @@ class HospitalSimulation:
             self.process_admission_complete_event(next_event)
         elif isinstance(next_event, Event.DepartureEvent):
             self.process_departure_event(next_event)
+
     
+    def print_patient_summary(self):
+        tot_patients = 0
+        avg_wait_time = 0
+        print("patient ID     Priority  Arrival Time  Assessment Time  Treatment Time   Departure Time   Wait Time")
+        for patient in self.patients:
+            tot_wait_time = patient.assessment_wait_time + patient.ewr_wait_time + patient.admission_wait_time
+            print(f"{patient.patient_id}           {patient.priority}      {patient.arrival_time}      {patient.assessment_time}       {patient.treatment_time}        {patient.departure_time}        {tot_wait_time}")
+            avg_wait_time += tot_wait_time
+            tot_patients += 1
+
+        avg_wait_time = avg_wait_time / tot_patients
+        print(f"Patients seen in total: {tot_patients}")
+        print(f"Average waiting time per patient: {avg_wait_time}")
