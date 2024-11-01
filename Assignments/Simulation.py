@@ -202,10 +202,11 @@ class HospitalSimulation:
     def print_patient_summary(self):
         tot_patients = 0
         avg_wait_time = 0
-        print("patient ID     Priority  Arrival Time  Assessment Time  Treatment Time   Departure Time   Wait Time")
+        print(f"{'Patient':<10} {'Priority':<10} {'Arrival':<10} {'Assessment':<15} {'Treatment':<12} {'Departure':<12} {'Waiting':<10}")
+        print('-' * 80)
         for patient in self.patients:
             tot_wait_time = patient.assessment_wait_time + patient.ewr_wait_time + patient.admission_wait_time
-            print(f"{patient.patient_id}           {patient.priority}      {patient.arrival_time}      {patient.assessment_time}       {patient.treatment_time}        {patient.departure_time}        {tot_wait_time}")
+            print(f"{patient.patient_id:<11}{patient.priority:<11}{patient.arrival_time:<11}{patient.assessment_time:<16}{patient.treatment_time:<13}{patient.departure_time:<13}{tot_wait_time:<10}")
             avg_wait_time += tot_wait_time
             tot_patients += 1
 
